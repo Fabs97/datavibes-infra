@@ -1,0 +1,4 @@
+bucket  = "your-terraform-state-bucket"
+key     = "datavibes/terraform.tfstate"
+region  = "eu-central-1"
+encrypt = true

@@ -1,0 +1,55 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  # Replace with your actual Role ARN or use a secret
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+  TF_VAR_github_token: ${{ secrets.GH_PAT }} # GitHub Token for Amplify
+  TF_VAR_github_repository: ${{ github.repository }}
+
+jobs:
+  deploy:
+    name: Deploy Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Dependencies & Build Lambdas
+        run: make install build
+
+      - name: Terraform Init
+        run: make init
+
+      - name: Terraform Plan
+        run: make plan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: make apply-auto
